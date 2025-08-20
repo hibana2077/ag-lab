@@ -154,18 +154,14 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     total_steps = args.epochs * math.ceil(len(loaders["train"]) / max(1, args.grad_accum))
     sched = WarmupCosine(opt, warmup=args.warmup_steps, max_steps=total_steps)
-    # GradScaler: updated API (FutureWarning suggests using torch.amp.GradScaler('cuda', ...))
-    scaler = torch.amp.GradScaler(
-        device_type="cuda",
-        enabled=(args.precision == "fp16" and device == "cuda"),
-    )
+    # No GradScaler per user request; we still use autocast for forward pass.
 
     # Save config
     with open(os.path.join(out_dir, "config.json"), "w", encoding="utf-8") as f:
         json.dump(vars(args), f, indent=2, ensure_ascii=False)
 
     for epoch in range(start_epoch, args.epochs + 1):
-        logs = train_one_epoch(model, loaders["train"], opt, sched, scaler, device, args)
+        logs = train_one_epoch(model, loaders["train"], opt, sched, device, args)
         val_metrics = evaluate(model, loaders["val"], device, args, task_meta, tokenizer)
         history["loss_curve"].append((epoch, float(logs["loss"])) )
         ppl = val_metrics.get("ppl")

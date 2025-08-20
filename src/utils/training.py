@@ -26,7 +26,7 @@ class WarmupCosine:
         return [g["lr"] for g in self.opt.param_groups]
 
 
-def train_one_epoch(model, loader: DataLoader, opt, sched, scaler, device, args) -> Dict:
+def train_one_epoch(model, loader: DataLoader, opt, sched, device, args) -> Dict:
     model.train()
     losses = []
     opt.zero_grad(set_to_none=True)
@@ -37,20 +37,11 @@ def train_one_epoch(model, loader: DataLoader, opt, sched, scaler, device, args)
         with torch.autocast(device_type="cuda" if torch.cuda.is_available() else "cpu", dtype=autocast_dtype, enabled=autocast_dtype is not None):
             loss, _ = model.loss_fn(batch)
             loss = loss / args.grad_accum
-        if scaler.is_enabled():
-            scaler.scale(loss).backward()
-        else:
-            loss.backward()
+        loss.backward()
         if (step + 1) % args.grad_accum == 0:
             if args.grad_clip:
-                if scaler.is_enabled():
-                    scaler.unscale_(opt)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
-            if scaler.is_enabled():
-                scaler.step(opt)
-                scaler.update()
-            else:
-                opt.step()
+            opt.step()
             opt.zero_grad(set_to_none=True)
             sched.step()
         losses.append(loss.item() * args.grad_accum)
