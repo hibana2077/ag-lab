@@ -74,7 +74,7 @@ def parse_args():
     ap.add_argument("--warmup_steps", type=int, default=200)
     ap.add_argument("--grad_clip", type=float, default=1.0)
     # misc
-    ap.add_argument("--precision", choices=["fp32", "fp16", "bf16"], default="bf16")
+    ap.add_argument("--precision", choices=["fp32", "fp16", "bf16"], default="fp32")
     ap.add_argument("--seed", type=int, default=1337)
     ap.add_argument("--out_dir", type=str, default=None)
     ap.add_argument("--eval_only", action="store_true")
