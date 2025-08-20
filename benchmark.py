@@ -154,7 +154,11 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     total_steps = args.epochs * math.ceil(len(loaders["train"]) / max(1, args.grad_accum))
     sched = WarmupCosine(opt, warmup=args.warmup_steps, max_steps=total_steps)
-    scaler = torch.cuda.amp.GradScaler(enabled=(args.precision == "fp16"))
+    # GradScaler: updated API (FutureWarning suggests using torch.amp.GradScaler('cuda', ...))
+    scaler = torch.amp.GradScaler(
+        device_type="cuda",
+        enabled=(args.precision == "fp16" and device == "cuda"),
+    )
 
     # Save config
     with open(os.path.join(out_dir, "config.json"), "w", encoding="utf-8") as f:
@@ -167,7 +171,9 @@ def main():
         ppl = val_metrics.get("ppl")
         if ppl is not None:
             history["ppl_curve"].append((epoch, float(ppl)))
-        print(f"[E{epoch}] train_loss={logs['loss']:.4f} val_ppl={ppl:.2f if ppl else -1}")
+        # Safe formatting for ppl (can be None); avoid conditional inside format specifier
+        ppl_str = f"{ppl:.2f}" if (ppl is not None) else "-1"
+        print(f"[E{epoch}] train_loss={logs['loss']:.4f} val_ppl={ppl_str}")
 
         # Optional sample
         if args.sample_every and (epoch % args.sample_every == 0):
