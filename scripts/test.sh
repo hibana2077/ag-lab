@@ -14,4 +14,4 @@ module load cuda/12.6.2
 source /scratch/rp06/sl5952/ag-lab/.venv/bin/activate
 
 cd ..
-python3 benchmark.py --task needle --model mamba --context_len 256 --epochs 3 >> test001.log
+python3 benchmark.py --task needle --model transformer --context_len 256 --epochs 3 >> test001.log
